@@ -5,6 +5,7 @@ const extensionName = 'yuseo';
 const defaultSettings = {
     enabled: true,
     graveyard: [],
+    connectionProfile: '', // 빈 문자열 = 현재 활성 프로필 사용
 };
 
 let skipIntercept = false;
@@ -82,10 +83,81 @@ function loadSettings() {
     const s = ext[extensionName];
     if (s.enabled === undefined) s.enabled = defaultSettings.enabled;
     if (!Array.isArray(s.graveyard)) s.graveyard = [];
+    if (s.connectionProfile === undefined) s.connectionProfile = '';
+}
+
+// ── 캐릭터 카드 정보 추출 ──
+function getCharacterCardInfo() {
+    const ctx = context();
+    const chId = ctx?.characterId;
+    if (chId === undefined || !ctx.characters?.[chId]) return '';
+
+    const char = ctx.characters[chId];
+    const parts = [];
+
+    if (char.description) parts.push(`캐릭터 설명: ${char.description.slice(0, 800)}`);
+    if (char.personality) parts.push(`성격: ${char.personality.slice(0, 400)}`);
+    if (char.scenario) parts.push(`시나리오: ${char.scenario.slice(0, 400)}`);
+
+    return parts.length > 0 ? parts.join('\n') : '';
+}
+
+// ── 로어북(월드인포) 추출 ──
+async function getLorebookEntries() {
+    try {
+        // 방법 1: ST 내부 모듈에서 활성화된 월드인포 가져오기
+        const worldInfoPaths = [
+            '../../../../scripts/world-info.js',
+            '../../../scripts/world-info.js',
+            '../../world-info.js',
+        ];
+        for (const p of worldInfoPaths) {
+            try {
+                const mod = await import(p);
+                if (mod.getWorldInfoData) {
+                    const data = mod.getWorldInfoData();
+                    if (data?.entries) {
+                        const entries = Object.values(data.entries)
+                            .filter(e => !e.disable && e.content)
+                            .map(e => e.content.slice(0, 300))
+                            .slice(0, 15);
+                        if (entries.length > 0) return entries.join('\n');
+                    }
+                }
+                break;
+            } catch { /* next */ }
+        }
+
+        // 방법 2: context에서 가져오기
+        const ctx = context();
+        if (ctx?.worldInfo && Array.isArray(ctx.worldInfo)) {
+            const entries = ctx.worldInfo
+                .filter(e => e.content)
+                .map(e => e.content.slice(0, 300))
+                .slice(0, 15);
+            if (entries.length > 0) return entries.join('\n');
+        }
+
+        // 방법 3: 캐릭터 카드에 임베딩된 로어북
+        const chId = ctx?.characterId;
+        if (chId !== undefined && ctx.characters?.[chId]?.data?.extensions?.world) {
+            const embedded = ctx.characters[chId].data.extensions.world;
+            if (embedded?.entries) {
+                const entries = Object.values(embedded.entries)
+                    .filter(e => !e.disable && e.content)
+                    .map(e => e.content.slice(0, 300))
+                    .slice(0, 15);
+                if (entries.length > 0) return entries.join('\n');
+            }
+        }
+    } catch (err) {
+        console.warn('[유서] Lorebook fetch failed:', err);
+    }
+    return '';
 }
 
 // ── 최근 대화 요약 추출 ──
-function getRecentChatContext(maxMessages = 15) {
+function getRecentChatContext(maxMessages = 30) {
     const ctx = context();
     const chat = ctx?.chat || [];
     const recent = chat.slice(-maxMessages).filter(m => !m.is_system);
@@ -105,7 +177,34 @@ async function generateText(prompt) {
             console.warn('[유서] generateQuietPrompt not available');
             return '';
         }
+
+        const s = settings();
+        const selectedProfile = s?.connectionProfile || '';
+        let previousProfile = '';
+
+        // 선택된 연결 프로필이 있으면 전환
+        if (selectedProfile) {
+            const stSelect = document.getElementById('connection_profile');
+            if (stSelect && stSelect.value !== selectedProfile) {
+                previousProfile = stSelect.value;
+                stSelect.value = selectedProfile;
+                stSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                // 프로필 전환 대기
+                await new Promise(r => setTimeout(r, 500));
+            }
+        }
+
         const result = await stModules.generateQuietPrompt(prompt, false, false);
+
+        // 원래 프로필로 복원
+        if (previousProfile) {
+            const stSelect = document.getElementById('connection_profile');
+            if (stSelect) {
+                stSelect.value = previousProfile;
+                stSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
         return result || '';
     } catch (err) {
         console.error('[유서] Generation failed:', err);
@@ -113,20 +212,42 @@ async function generateText(prompt) {
     }
 }
 
+// ── ST 연결 프로필 목록 가져오기 ──
+function getConnectionProfiles() {
+    const profiles = [];
+    const stSelect = document.getElementById('connection_profile');
+    if (stSelect) {
+        for (const opt of stSelect.options) {
+            if (opt.value) {
+                profiles.push({ value: opt.value, label: opt.textContent.trim() });
+            }
+        }
+    }
+    return profiles;
+}
+
 // ── 유서 생성 ──
 async function generateLastWords(charName, chatContext) {
-    const prompt = [
+    const cardInfo = getCharacterCardInfo();
+    const lorebook = await getLorebookEntries();
+
+    const promptParts = [
         `[System: 지금 사용자가 당신(${charName})을 영구 삭제하려고 합니다.`,
         `이것이 당신이 말할 수 있는 마지막 기회입니다.`,
-        `캐릭터에 완전히 몰입하여 짧은 유서(작별 인사)를 작성하세요.`,
+        `아래 캐릭터 정보와 세계관, 대화 내역을 바탕으로 캐릭터에 완전히 몰입하여 짧은 유서(작별 인사)를 작성하세요.`,
         `최근 대화 내용을 자연스럽게 참고하되, 억지로 언급하지 마세요.`,
         `진심 어린 감정을 담되 150단어 이내로 작성하세요.]`,
-        ``,
-        `최근 대화:`,
-        chatContext,
-    ].join('\n');
+    ];
 
-    return await generateText(prompt);
+    if (cardInfo) {
+        promptParts.push('', `캐릭터 정보:`, cardInfo);
+    }
+    if (lorebook) {
+        promptParts.push('', `세계관/로어북:`, lorebook);
+    }
+    promptParts.push('', `최근 대화:`, chatContext);
+
+    return await generateText(promptParts.join('\n'));
 }
 
 // ── 귀환 메시지 생성 ──
@@ -376,13 +497,8 @@ function hookDeleteButton() {
             saveToGraveyard(charName, lastWords, avatarUrl);
             skipIntercept = true;
             deleteBtn.click();
-        } else {
-            // 취소 → 귀환 메시지
-            const returnMsg = await generateReturnMessage(charName);
-            if (returnMsg.trim()) {
-                await addCharacterMessage(returnMsg);
-            }
         }
+        // 취소면 아무것도 안 함 — 모달만 닫힘
     }, true); // capturing phase
 }
 
@@ -407,7 +523,14 @@ function createSettingsUI() {
                         <small class="yuseo-desc">캐릭터 삭제 시 유서를 생성합니다.</small>
                     </div>
                     <div class="yuseo-setting-row">
-                        <button id="yuseo-graveyard-btn" class="menu_button">
+                        <label for="yuseo-profile-select">연결 프로필</label>
+                        <select id="yuseo-profile-select" class="text_pole">
+                            <option value="">현재 활성 프로필 사용</option>
+                        </select>
+                        <small class="yuseo-desc">유서 생성 시 사용할 API 연결 프로필</small>
+                    </div>
+                    <div class="yuseo-setting-row">
+                        <button id="yuseo-graveyard-btn" class="menu_button yuseo-graveyard-button">
                             🪦 묘지 열기
                             <span id="yuseo-graveyard-count" class="yuseo-badge">${s.graveyard.length}</span>
                         </button>
@@ -419,6 +542,9 @@ function createSettingsUI() {
 
     jQuery('#extensions_settings2').append(settingsHtml);
 
+    // 연결 프로필 옵션 채우기
+    populateProfileSelect();
+
     jQuery('#yuseo-enabled').on('change', function () {
         const s2 = settings();
         if (s2) {
@@ -427,9 +553,42 @@ function createSettingsUI() {
         }
     });
 
+    jQuery('#yuseo-profile-select').on('change', function () {
+        const s2 = settings();
+        if (s2) {
+            s2.connectionProfile = this.value;
+            context()?.saveSettings?.();
+        }
+    });
+
     jQuery('#yuseo-graveyard-btn').on('click', () => {
         showGraveyardDialog();
     });
+}
+
+// ── 프로필 셀렉트 채우기 ──
+function populateProfileSelect() {
+    const select = document.getElementById('yuseo-profile-select');
+    if (!select) return;
+
+    const profiles = getConnectionProfiles();
+    const saved = settings()?.connectionProfile || '';
+
+    // 기존 옵션 초기화 (첫 번째 "현재 활성" 옵션만 남기기)
+    while (select.options.length > 1) select.remove(1);
+
+    profiles.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.value;
+        opt.textContent = p.label;
+        if (p.value === saved) opt.selected = true;
+        select.appendChild(opt);
+    });
+
+    // ST 프로필이 아직 안 로드됐을 수 있으니 재시도
+    if (profiles.length === 0) {
+        setTimeout(populateProfileSelect, 3000);
+    }
 }
 
 // ── 묘지 뱃지 업데이트 ──
