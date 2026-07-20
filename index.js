@@ -640,14 +640,12 @@ function createSettingsUI() {
                             <input type="checkbox" id="yuseo-enabled" ${s.enabled ? 'checked' : ''}>
                             <span>확장 활성화</span>
                         </label>
-                        <small class="yuseo-desc">캐릭터 삭제 시 유서를 생성합니다.</small>
                     </div>
                     <div class="yuseo-setting-row">
                         <label for="yuseo-profile-select">연결 프로필</label>
                         <select id="yuseo-profile-select" class="text_pole">
                             <option value="">현재 활성 프로필 사용</option>
                         </select>
-                        <small class="yuseo-desc">유서 생성 시 사용할 API 연결 프로필</small>
                     </div>
                     <div class="yuseo-setting-row">
                         <button id="yuseo-graveyard-btn" class="menu_button yuseo-graveyard-button">

@@ -1,9 +1,20 @@
 /* ── 유서 (Last Words) ── */
 
+/* 핵: 모든 yuseo 요소 텍스트 불투명 강제 */
+.yuseo-dialog,
+.yuseo-dialog *,
+.yuseo-modal,
+.yuseo-modal *,
+.yuseo-settings,
+.yuseo-settings * {
+    opacity: 1 !important;
+    -webkit-text-fill-color: initial !important;
+}
+
 /* dialog 강제 중앙 고정 */
 .yuseo-dialog {
     border: none;
-    background: transparent;
+    background: transparent !important;
     padding: 0;
     max-width: min(420px, 90vw);
     width: 100%;
@@ -21,22 +32,13 @@
     z-index: 99998 !important;
 }
 
-/* 모달 본체 — 완전 불투명 배경 */
+/* 모달 본체 */
 .yuseo-modal {
-    background: rgb(from var(--SmartThemeBlurTintColor, #1a1a2e) r g b / 1);
-    color: var(--SmartThemeBodyColor, #ccc);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 24px;
     font-family: inherit;
     animation: yuseo-fade-in 0.3s ease;
-}
-
-/* rgb() 미지원 폴백 */
-@supports not (color: rgb(from red r g b / 1)) {
-    .yuseo-modal {
-        background: #1a1a2e;
-    }
 }
 
 /* 헤더: 아바타 + 제목 */
@@ -135,7 +137,7 @@
 
 .yuseo-btn-close {
     background: #2a2a2a;
-    color: var(--SmartThemeBodyColor, #ccc);
+    color: inherit;
     border: 1px solid #3a3a3a;
     flex: 0;
     min-width: 100px;
@@ -260,11 +262,6 @@
     gap: 4px;
 }
 
-.yuseo-desc {
-    font-size: 0.82em;
-    padding-left: 24px;
-}
-
 .yuseo-graveyard-button {
     width: 100%;
     display: flex;
@@ -289,18 +286,18 @@
 /* ── 애니메이션 ── */
 @keyframes yuseo-fade-in {
     from {
-        opacity: 0;
+        opacity: 0 !important;
         transform: translate(-50%, -50%) translateY(8px) scale(0.97) !important;
     }
     to {
-        opacity: 1;
+        opacity: 1 !important;
         transform: translate(-50%, -50%) translateY(0) scale(1) !important;
     }
 }
 
 @keyframes yuseo-fade-out {
-    from { opacity: 1; transform: scale(1); }
-    to { opacity: 0; transform: scale(0.95); }
+    from { opacity: 1 !important; transform: scale(1); }
+    to { opacity: 0 !important; transform: scale(0.95); }
 }
 
 @keyframes yuseo-writing {
