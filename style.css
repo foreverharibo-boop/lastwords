@@ -117,22 +117,24 @@
 }
 
 .yuseo-btn-cancel {
-    background: #2a3060;
-    color: #8eaaff;
-    border: 1px solid #3a4080;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border: none;
 }
 
 .yuseo-btn-cancel:hover {
-    background: #343a70;
+    background: linear-gradient(135deg, #5a6fd6, #6a4292);
 }
 
 .yuseo-btn-delete {
-    background: #3a2020;
-    color: #ff7b7b;
-    border: 1px solid #4a2828;
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: #fff;
+    border: none;
 }
 
 .yuseo-btn-delete:hover {
+    background: linear-gradient(135deg, #e080e8, #e04a5e);
+}
     background: #4a2828;
 }
 
@@ -241,6 +243,24 @@
     font-style: italic;
     word-break: keep-all;
     overflow-wrap: break-word;
+    transition: max-height 0.3s ease;
+}
+
+.yuseo-grave-words.yuseo-collapsed {
+    max-height: 4.2em;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
+}
+
+.yuseo-grave-toggle {
+    font-size: 0.8em;
+    text-align: center;
+    cursor: pointer;
+    padding: 6px 0 2px;
+    user-select: none;
+    -webkit-user-select: none;
+}
 }
 
 .yuseo-empty {

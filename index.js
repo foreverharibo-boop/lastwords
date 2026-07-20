@@ -514,7 +514,8 @@ function showGraveyardDialog() {
                     </div>
                     <button class="yuseo-grave-remove menu_button" title="삭제">✕</button>
                 </div>
-                <div class="yuseo-grave-words">${entry.lastWords.replace(/\n/g, '<br>')}</div>
+                <div class="yuseo-grave-words yuseo-collapsed">${entry.lastWords.replace(/\n/g, '<br>')}</div>
+                <div class="yuseo-grave-toggle">펼치기 ▾</div>
             </div>
         `).join('');
     }
@@ -528,6 +529,16 @@ function showGraveyardDialog() {
             </div>
         </div>
     `;
+
+    // 펼치기/접기 토글
+    dialog.querySelectorAll('.yuseo-grave-toggle').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const words = toggle.previousElementSibling;
+            const isCollapsed = words.classList.contains('yuseo-collapsed');
+            words.classList.toggle('yuseo-collapsed');
+            toggle.textContent = isCollapsed ? '접기 ▴' : '펼치기 ▾';
+        });
+    });
 
     dialog.querySelectorAll('.yuseo-grave-remove').forEach(btn => {
         btn.addEventListener('click', (e) => {
