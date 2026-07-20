@@ -1,15 +1,16 @@
 /* ── 유서 (Last Words) ── */
 
-/* 핵: 모든 yuseo 요소 텍스트 불투명 강제 */
+/* 나눔명조 폰트 로드 */
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap');
+
+/* 핵: 모든 yuseo 요소 불투명 + 그림자 제거 */
 .yuseo-dialog,
 .yuseo-dialog *,
-.yuseo-modal,
-.yuseo-modal *,
 .yuseo-settings,
 .yuseo-settings * {
     opacity: 1 !important;
-    -webkit-text-fill-color: initial !important;
     text-shadow: none !important;
+    -webkit-text-fill-color: initial !important;
 }
 
 /* dialog 강제 중앙 고정 */
@@ -17,7 +18,7 @@
     border: none;
     background: transparent !important;
     padding: 0;
-    max-width: min(420px, 90vw);
+    max-width: min(420px, 92vw);
     width: 100%;
     outline: none;
     position: fixed !important;
@@ -29,141 +30,183 @@
 }
 
 .yuseo-dialog::backdrop {
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.8);
     z-index: 99998 !important;
 }
 
-/* 모달 본체 */
+/* ── 모달 공통 ── */
 .yuseo-modal {
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 24px;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
     font-family: inherit;
     animation: yuseo-fade-in 0.3s ease;
 }
 
-/* 헤더: 아바타 + 제목 */
-.yuseo-header {
+/* ── 편지 헤더 ── */
+.yuseo-letter-header {
+    padding: 28px 24px 0;
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 16px;
 }
 
-.yuseo-avatar {
-    width: 56px;
-    height: 56px;
+.yuseo-letter-avatar {
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 12px rgba(102, 126, 234, 0.25);
 }
 
-.yuseo-avatar img {
+.yuseo-letter-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.yuseo-title {
-    font-size: 1.15em;
-    font-weight: 600;
-    letter-spacing: -0.01em;
+.yuseo-letter-info {
+    font-family: 'Nanum Myeongjo', serif;
 }
 
-/* 구분선 */
+.yuseo-letter-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.yuseo-letter-to {
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+/* ── 구분선 ── */
 .yuseo-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.06);
-    margin: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+    margin: 20px 24px 0;
 }
 
-/* 유서 본문 */
-.yuseo-body {
-    padding: 20px 4px;
-    min-height: 80px;
+.yuseo-divider-bottom {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+    margin: 0 24px;
+}
+
+/* ── 편지 본문 ── */
+.yuseo-letter-body {
+    padding: 24px 28px 20px;
+    font-family: 'Nanum Myeongjo', serif;
+    font-size: 15px;
+    line-height: 2;
+    position: relative;
     max-height: 50vh;
     overflow-y: auto;
 }
 
-.yuseo-text {
-    font-size: 0.95em;
-    line-height: 1.75;
-    margin: 0;
-    font-style: italic;
-    word-break: keep-all;
-    overflow-wrap: break-word;
+.yuseo-letter-body::before {
+    content: '\201C';
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    font-size: 48px;
+    color: rgba(102, 126, 234, 0.12);
+    font-family: Georgia, serif;
+    line-height: 1;
 }
 
-/* 액션 버튼 영역 */
+/* ── 서명 ── */
+.yuseo-letter-sign {
+    padding: 0 28px 24px;
+    text-align: right;
+    font-family: 'Nanum Myeongjo', serif;
+}
+
+.yuseo-letter-sign-name {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.yuseo-letter-sign-date {
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+/* ── 버튼 영역 ── */
 .yuseo-actions {
+    padding: 20px 20px 24px;
     display: flex;
     gap: 10px;
-    margin-top: 18px;
-    justify-content: center;
 }
 
 .yuseo-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.9em;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
     flex: 1;
-    max-width: 200px;
+    padding: 13px;
+    border: none;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #fff;
+    letter-spacing: -0.01em;
+    transition: transform 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+    max-width: none;
+}
+
+.yuseo-btn:active {
+    transform: scale(0.97);
 }
 
 .yuseo-btn-cancel {
     background: linear-gradient(135deg, #667eea, #764ba2);
-    color: #fff;
-    border: none;
-}
-
-.yuseo-btn-cancel:hover {
-    background: linear-gradient(135deg, #5a6fd6, #6a4292);
+    box-shadow: 0 4px 18px rgba(102, 126, 234, 0.3);
 }
 
 .yuseo-btn-delete {
     background: linear-gradient(135deg, #f093fb, #f5576c);
-    color: #fff;
-    border: none;
-}
-
-.yuseo-btn-delete:hover {
-    background: linear-gradient(135deg, #e080e8, #e04a5e);
-}
-    background: #4a2828;
+    box-shadow: 0 4px 18px rgba(245, 87, 108, 0.3);
 }
 
 .yuseo-btn-close {
-    background: #2a2a2a;
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    font-size: 13px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.03);
     color: inherit;
-    border: 1px solid #3a3a3a;
-    flex: 0;
-    min-width: 100px;
+    transition: background 0.2s;
+    font-family: inherit;
 }
 
 .yuseo-btn-close:hover {
-    background: #3a3a3a;
+    background: rgba(255, 255, 255, 0.06);
 }
 
 /* ── 로딩 ── */
 .yuseo-loading {
     text-align: center;
-    padding: 40px 24px;
+    padding: 48px 24px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .yuseo-loading-icon {
-    font-size: 2em;
+    font-size: 2.2em;
     margin-bottom: 16px;
     animation: yuseo-writing 1.5s ease-in-out infinite;
 }
 
 .yuseo-loading-text {
-    font-size: 0.95em;
+    font-size: 14px;
 }
 
 /* ── 묘지 ── */
@@ -173,72 +216,87 @@
     flex-direction: column;
 }
 
-.yuseo-graveyard-title {
-    font-size: 1.2em;
-    font-weight: 600;
+.yuseo-graveyard-header {
+    padding: 28px 24px 8px;
     text-align: center;
-    margin-bottom: 16px;
+}
+
+.yuseo-graveyard-header-icon {
+    font-size: 32px;
+    margin-bottom: 6px;
+}
+
+.yuseo-graveyard-header-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.yuseo-graveyard-header-sub {
+    font-size: 12px;
+    margin-top: 6px;
 }
 
 .yuseo-graveyard-list {
     flex: 1;
     overflow-y: auto;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 2px;
+    gap: 8px;
 }
 
 .yuseo-grave-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
-    padding: 14px;
+    background: rgba(255, 255, 255, 0.025);
+    border-radius: 14px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.035);
+    transition: background 0.2s;
+}
+
+.yuseo-grave-card:hover {
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .yuseo-grave-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
     margin-bottom: 10px;
 }
 
-.yuseo-grave-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-
-.yuseo-grave-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
 .yuseo-grave-name {
+    font-size: 14.5px;
     font-weight: 600;
-    font-size: 0.95em;
 }
 
 .yuseo-grave-date {
-    font-size: 0.78em;
+    font-size: 11px;
+    margin-left: 8px;
+}
+
+.yuseo-grave-tag {
+    font-size: 10px;
+    color: #f093fb;
+    margin-left: 6px;
+    background: rgba(240, 147, 251, 0.1);
+    padding: 2px 8px;
+    border-radius: 6px;
 }
 
 .yuseo-grave-remove {
-    padding: 4px 8px !important;
-    font-size: 0.8em !important;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px !important;
     min-width: unset !important;
+    transition: color 0.2s;
 }
 
 .yuseo-grave-remove:hover {
-    color: #ff7b7b;
+    color: #f5576c;
 }
 
 .yuseo-grave-words {
-    font-size: 0.88em;
+    font-size: 13px;
     line-height: 1.7;
     font-style: italic;
     word-break: keep-all;
@@ -247,26 +305,35 @@
 }
 
 .yuseo-grave-words.yuseo-collapsed {
-    max-height: 4.2em;
+    max-height: 3.4em;
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
+    mask-image: linear-gradient(to bottom, #000 40%, transparent);
 }
 
 .yuseo-grave-toggle {
-    font-size: 0.8em;
     text-align: center;
+    font-size: 12px;
+    color: #667eea;
     cursor: pointer;
-    padding: 6px 0 2px;
+    padding-top: 8px;
     user-select: none;
     -webkit-user-select: none;
+    transition: color 0.2s;
 }
+
+.yuseo-grave-toggle:hover {
+    color: #8eaaff;
+}
+
+.yuseo-graveyard-close {
+    padding: 8px 14px 20px;
 }
 
 .yuseo-empty {
     text-align: center;
     padding: 32px 16px;
-    font-size: 0.9em;
+    font-size: 14px;
 }
 
 /* ── 설정 패널 ── */
@@ -317,23 +384,23 @@
 }
 
 @keyframes yuseo-fade-out {
-    from { opacity: 1 !important; transform: scale(1); }
-    to { opacity: 0 !important; transform: scale(0.95); }
+    from { opacity: 1 !important; }
+    to { opacity: 0 !important; }
 }
 
 @keyframes yuseo-writing {
     0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-8deg); }
-    75% { transform: rotate(8deg); }
+    25% { transform: rotate(-10deg); }
+    75% { transform: rotate(10deg); }
 }
 
 /* ── 스크롤바 ── */
-.yuseo-body::-webkit-scrollbar,
+.yuseo-letter-body::-webkit-scrollbar,
 .yuseo-graveyard-list::-webkit-scrollbar {
     width: 4px;
 }
 
-.yuseo-body::-webkit-scrollbar-thumb,
+.yuseo-letter-body::-webkit-scrollbar-thumb,
 .yuseo-graveyard-list::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;

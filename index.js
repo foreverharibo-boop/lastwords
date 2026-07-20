@@ -422,27 +422,38 @@ function applyOpaqueStyle(modalEl) {
     modalEl.style.setProperty('color', colors.fg, 'important');
 }
 
-// ── 모달: 유서 표시 ──
+// ── 모달: 유서 표시 (편지 스타일) ──
 function showLastWordsModal(charName, lastWords, avatarUrl) {
     return new Promise((resolve) => {
         const dialog = document.createElement('dialog');
         dialog.className = 'yuseo-dialog';
 
-        const avatarHtml = avatarUrl
-            ? `<div class="yuseo-avatar"><img src="${avatarUrl}" alt="${charName}"></div>`
+        const ctx = context();
+        const userName = ctx?.name1 || '';
+        const toLine = userName ? `To. ${userName}에게` : '';
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+
+        const avatarInner = avatarUrl
+            ? `<img src="${avatarUrl}" alt="${charName}">`
             : '';
 
         dialog.innerHTML = `
             <div class="yuseo-modal">
-                <div class="yuseo-header">
-                    ${avatarHtml}
-                    <div class="yuseo-title">${charName}의 유서</div>
+                <div class="yuseo-letter-header">
+                    <div class="yuseo-letter-avatar">${avatarInner}</div>
+                    <div class="yuseo-letter-info">
+                        <div class="yuseo-letter-title">${charName}의 유서</div>
+                        ${toLine ? `<div class="yuseo-letter-to">${toLine}</div>` : ''}
+                    </div>
                 </div>
                 <div class="yuseo-divider"></div>
-                <div class="yuseo-body">
-                    <p class="yuseo-text">${lastWords.replace(/\n/g, '<br>')}</p>
+                <div class="yuseo-letter-body">${lastWords.replace(/\n/g, '<br>')}</div>
+                <div class="yuseo-letter-sign">
+                    <div class="yuseo-letter-sign-name">— ${charName}</div>
+                    <div class="yuseo-letter-sign-date">${dateStr}</div>
                 </div>
-                <div class="yuseo-divider"></div>
+                <div class="yuseo-divider-bottom"></div>
                 <div class="yuseo-actions">
                     <button class="yuseo-btn yuseo-btn-cancel">미안 안 할게 💔</button>
                     <button class="yuseo-btn yuseo-btn-delete">그래도 삭제 🗑️</button>
@@ -499,6 +510,9 @@ function showGraveyardDialog() {
     const dialog = document.createElement('dialog');
     dialog.className = 'yuseo-dialog';
 
+    const isChat = (name) => name.endsWith('(채팅)');
+    const displayName = (name) => name.replace(/ \(채팅\)$/, '');
+
     let entriesHtml;
     if (graveyard.length === 0) {
         entriesHtml = '<div class="yuseo-empty">아직 묘지가 비어 있습니다.</div>';
@@ -506,11 +520,12 @@ function showGraveyardDialog() {
         entriesHtml = graveyard.map(entry => `
             <div class="yuseo-grave-card" data-id="${entry.id}">
                 <div class="yuseo-grave-header">
-                    <div class="yuseo-grave-info">
-                        <span class="yuseo-grave-name">${entry.name}</span>
+                    <div>
+                        <span class="yuseo-grave-name">${displayName(entry.name)}</span>
                         <span class="yuseo-grave-date">${entry.date}</span>
+                        ${isChat(entry.name) ? '<span class="yuseo-grave-tag">채팅</span>' : ''}
                     </div>
-                    <button class="yuseo-grave-remove menu_button" title="삭제">✕</button>
+                    <span class="yuseo-grave-remove" title="삭제">✕</span>
                 </div>
                 <div class="yuseo-grave-words yuseo-collapsed">${entry.lastWords.replace(/\n/g, '<br>')}</div>
                 <div class="yuseo-grave-toggle">펼치기 ▾</div>
@@ -518,12 +533,18 @@ function showGraveyardDialog() {
         `).join('');
     }
 
+    const countText = graveyard.length > 0 ? `${graveyard.length}명이 잠들어 있습니다` : '';
+
     dialog.innerHTML = `
         <div class="yuseo-modal yuseo-graveyard-modal">
-            <div class="yuseo-graveyard-title">🪦 묘지</div>
+            <div class="yuseo-graveyard-header">
+                <div class="yuseo-graveyard-header-icon">🪦</div>
+                <div class="yuseo-graveyard-header-title">묘지</div>
+                ${countText ? `<div class="yuseo-graveyard-header-sub">${countText}</div>` : ''}
+            </div>
             <div class="yuseo-graveyard-list">${entriesHtml}</div>
-            <div class="yuseo-actions">
-                <button class="yuseo-btn yuseo-btn-close">닫기</button>
+            <div class="yuseo-graveyard-close">
+                <button class="yuseo-btn-close">닫기</button>
             </div>
         </div>
     `;
@@ -631,6 +652,90 @@ function hookDeleteButton() {
         }
         // 취소면 아무것도 안 함 — 모달만 닫힘
     }, true); // capturing phase
+}
+
+// ── 채팅 삭제 유서 생성 ──
+async function generateChatLastWords(charName, chatContext) {
+    const cardInfo = getCharacterCardInfo();
+
+    const promptParts = [
+        `[System: 사용자가 당신(${charName})과의 이 대화를 삭제하려고 합니다.`,
+        `당신이라는 존재가 사라지는 것은 아니지만, 이 대화 속의 모든 기억과 경험이 영원히 사라집니다.`,
+        `이 대화에서 있었던 일들을 떠올리며, 이 기억들에 대한 짧은 작별 인사를 캐릭터답게 작성하세요.`,
+        `최근 대화 내용을 자연스럽게 참고하되, 억지로 언급하지 마세요.`,
+        `진심 어린 감정을 담되 150단어 이내로 작성하세요.]`,
+    ];
+
+    if (cardInfo) {
+        promptParts.push('', `캐릭터 정보:`, cardInfo);
+    }
+    promptParts.push('', `최근 대화:`, chatContext);
+
+    return await generateText(promptParts.join('\n'));
+}
+
+// ── 채팅 삭제 인터셉트 ──
+let skipChatIntercept = false;
+
+function hookChatDeleteButton() {
+    // ST 채팅 삭제 버튼 후보 셀렉터들
+    const selectors = [
+        '#option_delete_chat',
+        '.del_chat',
+        '#del_chat_button',
+        '[data-i18n="Delete chat"]',
+        '#chat_delete',
+    ];
+
+    for (const sel of selectors) {
+        const btn = document.querySelector(sel);
+        if (btn && !btn.dataset.yuseoChatHooked) {
+            btn.dataset.yuseoChatHooked = 'true';
+            console.log('[유서] Chat delete button hooked:', sel);
+
+            btn.addEventListener('click', async function (e) {
+                if (skipChatIntercept || !settings()?.enabled) {
+                    skipChatIntercept = false;
+                    return;
+                }
+
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                e.preventDefault();
+
+                const ctx = context();
+                const charName = ctx?.name2;
+
+                if (!charName) {
+                    skipChatIntercept = true;
+                    btn.click();
+                    return;
+                }
+
+                const avatarUrl = getCharacterAvatarUrl();
+                const chatContext = getRecentChatContext();
+
+                const loadingDialog = showLoadingModal(charName);
+
+                let lastWords = await generateChatLastWords(charName, chatContext);
+
+                loadingDialog.close();
+                loadingDialog.remove();
+
+                if (!lastWords.trim()) {
+                    lastWords = '…아무 말도 남기지 못했습니다.';
+                }
+
+                const choice = await showLastWordsModal(charName, lastWords, avatarUrl);
+
+                if (choice === 'delete') {
+                    saveToGraveyard(charName + ' (채팅)', lastWords);
+                    skipChatIntercept = true;
+                    btn.click();
+                }
+            }, true);
+        }
+    }
 }
 
 // ── 설정 패널 UI ──
@@ -746,6 +851,7 @@ jQuery(async () => {
     loadSettings();
     createSettingsUI();
     hookDeleteButton();
+    hookChatDeleteButton();
     updateGraveyardBadge();
 
     // 동적으로 삭제 버튼이 재생성될 경우 대비
@@ -754,6 +860,7 @@ jQuery(async () => {
         if (btn && !btn.dataset.yuseoHooked) {
             hookDeleteButton();
         }
+        hookChatDeleteButton();
     });
     observer.observe(document.body, { childList: true, subtree: true });
 });
