@@ -184,13 +184,12 @@ async function generateText(prompt) {
 
         // 선택된 연결 프로필이 있으면 전환
         if (selectedProfile) {
-            const stSelect = document.getElementById('connection_profile');
+            const stSelect = findSTProfileSelect();
             if (stSelect && stSelect.value !== selectedProfile) {
                 previousProfile = stSelect.value;
                 stSelect.value = selectedProfile;
                 stSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                // 프로필 전환 대기
-                await new Promise(r => setTimeout(r, 500));
+                await new Promise(r => setTimeout(r, 800));
             }
         }
 
@@ -198,7 +197,7 @@ async function generateText(prompt) {
 
         // 원래 프로필로 복원
         if (previousProfile) {
-            const stSelect = document.getElementById('connection_profile');
+            const stSelect = findSTProfileSelect();
             if (stSelect) {
                 stSelect.value = previousProfile;
                 stSelect.dispatchEvent(new Event('change', { bubbles: true }));
@@ -212,17 +211,100 @@ async function generateText(prompt) {
     }
 }
 
+// ── ST 연결 프로필 셀렉트 찾기 ──
+function findSTProfileSelect() {
+    // 여러 셀렉터 후보 시도
+    const selectors = [
+        '#connection_profile',
+        '#connection-profile',
+        'select[name="connection_profile"]',
+        '#api_button_connection_profile',
+        '[data-connection-profile]',
+    ];
+    for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el && el.tagName === 'SELECT') return el;
+    }
+    // 모든 select에서 텍스트로 찾기
+    const allSelects = document.querySelectorAll('select');
+    for (const sel of allSelects) {
+        const id = (sel.id || '').toLowerCase();
+        const name = (sel.name || '').toLowerCase();
+        if (id.includes('connection') || id.includes('profile') ||
+            name.includes('connection') || name.includes('profile')) {
+            console.log('[유서] Found profile select:', sel.id || sel.name);
+            return sel;
+        }
+    }
+    return null;
+}
+
 // ── ST 연결 프로필 목록 가져오기 ──
 function getConnectionProfiles() {
     const profiles = [];
-    const stSelect = document.getElementById('connection_profile');
+
+    // 방법 1: DOM에서 셀렉트 찾기
+    const stSelect = findSTProfileSelect();
     if (stSelect) {
         for (const opt of stSelect.options) {
             if (opt.value) {
                 profiles.push({ value: opt.value, label: opt.textContent.trim() });
             }
         }
+        if (profiles.length > 0) {
+            console.log('[유서] Profiles from DOM:', profiles.length);
+            return profiles;
+        }
     }
+
+    // 방법 2: power_user에서 가져오기
+    try {
+        const pu = window.power_user;
+        if (pu?.connection_profiles && typeof pu.connection_profiles === 'object') {
+            const entries = Array.isArray(pu.connection_profiles)
+                ? pu.connection_profiles
+                : Object.entries(pu.connection_profiles);
+            for (const entry of entries) {
+                if (Array.isArray(entry)) {
+                    profiles.push({ value: entry[0], label: entry[1]?.name || entry[0] });
+                } else if (typeof entry === 'object' && entry.name) {
+                    profiles.push({ value: entry.id || entry.name, label: entry.name });
+                } else if (typeof entry === 'string') {
+                    profiles.push({ value: entry, label: entry });
+                }
+            }
+            if (profiles.length > 0) {
+                console.log('[유서] Profiles from power_user:', profiles.length);
+                return profiles;
+            }
+        }
+    } catch (e) {
+        console.warn('[유서] power_user access failed:', e);
+    }
+
+    // 방법 3: ST context에서 가져오기
+    try {
+        const ctx = context();
+        if (ctx?.connectionProfiles) {
+            const cp = ctx.connectionProfiles;
+            const entries = Array.isArray(cp) ? cp : Object.entries(cp);
+            for (const entry of entries) {
+                if (Array.isArray(entry)) {
+                    profiles.push({ value: entry[0], label: entry[1] || entry[0] });
+                } else if (typeof entry === 'string') {
+                    profiles.push({ value: entry, label: entry });
+                }
+            }
+            if (profiles.length > 0) {
+                console.log('[유서] Profiles from context:', profiles.length);
+                return profiles;
+            }
+        }
+    } catch (e) {
+        console.warn('[유서] context profiles access failed:', e);
+    }
+
+    console.warn('[유서] No connection profiles found');
     return profiles;
 }
 
@@ -304,6 +386,41 @@ function saveToGraveyard(charName, lastWords, avatarUrl) {
     updateGraveyardBadge();
 }
 
+// ── 불투명 배경색 계산 ──
+function getOpaqueColors() {
+    // ST CSS 변수에서 색상 읽어서 알파 강제 1로
+    const temp = document.createElement('div');
+    temp.style.display = 'none';
+    document.body.appendChild(temp);
+
+    temp.style.color = 'var(--SmartThemeBlurTintColor, #1a1a2e)';
+    const bgRaw = getComputedStyle(temp).color;
+
+    temp.style.color = 'var(--SmartThemeBodyColor, #e0e0e0)';
+    const fgRaw = getComputedStyle(temp).color;
+
+    document.body.removeChild(temp);
+
+    // rgba → rgb 변환 (알파 제거)
+    const toOpaque = (c) => {
+        const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (m) return `rgb(${m[1]}, ${m[2]}, ${m[3]})`;
+        return c;
+    };
+
+    return {
+        bg: toOpaque(bgRaw),
+        fg: toOpaque(fgRaw),
+    };
+}
+
+// ── 모달에 불투명 스타일 적용 ──
+function applyOpaqueStyle(modalEl) {
+    const colors = getOpaqueColors();
+    modalEl.style.setProperty('background', colors.bg, 'important');
+    modalEl.style.setProperty('color', colors.fg, 'important');
+}
+
 // ── 모달: 유서 표시 ──
 function showLastWordsModal(charName, lastWords, avatarUrl) {
     return new Promise((resolve) => {
@@ -352,6 +469,7 @@ function showLastWordsModal(charName, lastWords, avatarUrl) {
         });
 
         document.documentElement.appendChild(dialog);
+        applyOpaqueStyle(dialog.querySelector('.yuseo-modal'));
         dialog.showModal();
     });
 }
@@ -368,6 +486,7 @@ function showLoadingModal(charName) {
     `;
     dialog.addEventListener('cancel', (e) => e.preventDefault());
     document.documentElement.appendChild(dialog);
+    applyOpaqueStyle(dialog.querySelector('.yuseo-modal'));
     dialog.showModal();
     return dialog;
 }
@@ -436,6 +555,7 @@ function showGraveyardDialog() {
     });
 
     document.documentElement.appendChild(dialog);
+    applyOpaqueStyle(dialog.querySelector('.yuseo-modal'));
     dialog.showModal();
 }
 
@@ -567,6 +687,7 @@ function createSettingsUI() {
 }
 
 // ── 프로필 셀렉트 채우기 ──
+let profileRetryCount = 0;
 function populateProfileSelect() {
     const select = document.getElementById('yuseo-profile-select');
     if (!select) return;
@@ -585,9 +706,13 @@ function populateProfileSelect() {
         select.appendChild(opt);
     });
 
-    // ST 프로필이 아직 안 로드됐을 수 있으니 재시도
-    if (profiles.length === 0) {
-        setTimeout(populateProfileSelect, 3000);
+    // ST 프로필이 아직 안 로드됐을 수 있으니 최대 5번 재시도
+    if (profiles.length === 0 && profileRetryCount < 5) {
+        profileRetryCount++;
+        console.log(`[유서] Profile retry ${profileRetryCount}/5...`);
+        setTimeout(populateProfileSelect, 2000 * profileRetryCount);
+    } else if (profiles.length > 0) {
+        console.log(`[유서] ${profiles.length} profiles loaded`);
     }
 }
 
