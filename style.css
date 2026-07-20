@@ -1,6 +1,6 @@
 /* ── 유서 (Last Words) ── */
 
-/* dialog 기본 리셋 */
+/* dialog 강제 중앙 고정 */
 .yuseo-dialog {
     border: none;
     background: transparent;
@@ -8,23 +8,35 @@
     max-width: min(420px, 90vw);
     width: 100%;
     outline: none;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    z-index: 99999 !important;
 }
 
 .yuseo-dialog::backdrop {
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 99998 !important;
 }
 
-/* 모달 본체 */
+/* 모달 본체 — 완전 불투명 배경 */
 .yuseo-modal {
-    background: var(--SmartThemeBlurTintColor, #1a1a2e);
+    background: rgb(from var(--SmartThemeBlurTintColor, #1a1a2e) r g b / 1);
     color: var(--SmartThemeBodyColor, #ccc);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 24px;
     font-family: inherit;
     animation: yuseo-fade-in 0.3s ease;
+}
+
+/* rgb() 미지원 폴백 */
+@supports not (color: rgb(from red r g b / 1)) {
+    .yuseo-modal {
+        background: #1a1a2e;
+    }
 }
 
 /* 헤더: 아바타 + 제목 */
@@ -102,35 +114,35 @@
 }
 
 .yuseo-btn-cancel {
-    background: rgba(100, 140, 255, 0.15);
+    background: #2a3060;
     color: #8eaaff;
-    border: 1px solid rgba(100, 140, 255, 0.2);
+    border: 1px solid #3a4080;
 }
 
 .yuseo-btn-cancel:hover {
-    background: rgba(100, 140, 255, 0.25);
+    background: #343a70;
 }
 
 .yuseo-btn-delete {
-    background: rgba(255, 80, 80, 0.12);
+    background: #3a2020;
     color: #ff7b7b;
-    border: 1px solid rgba(255, 80, 80, 0.18);
+    border: 1px solid #4a2828;
 }
 
 .yuseo-btn-delete:hover {
-    background: rgba(255, 80, 80, 0.22);
+    background: #4a2828;
 }
 
 .yuseo-btn-close {
-    background: rgba(255, 255, 255, 0.06);
+    background: #2a2a2a;
     color: var(--SmartThemeBodyColor, #ccc);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid #3a3a3a;
     flex: 0;
     min-width: 100px;
 }
 
 .yuseo-btn-close:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: #3a3a3a;
 }
 
 /* ── 로딩 ── */
@@ -177,7 +189,6 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 8px;
     padding: 14px;
-    transition: opacity 0.3s ease;
 }
 
 .yuseo-grave-header {
@@ -279,11 +290,11 @@
 @keyframes yuseo-fade-in {
     from {
         opacity: 0;
-        transform: translateY(8px) scale(0.97);
+        transform: translate(-50%, -50%) translateY(8px) scale(0.97) !important;
     }
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translate(-50%, -50%) translateY(0) scale(1) !important;
     }
 }
 
