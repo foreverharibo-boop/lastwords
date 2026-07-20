@@ -703,17 +703,15 @@ async function loadChatFileContent(charName, fileName) {
         const ctx = context();
         const chId = ctx?.characterId;
         const avatar = ctx?.characters?.[chId]?.avatar || '';
-        const headers = stModules.getRequestHeaders?.() || { 'Content-Type': 'application/json' };
-
-        // file_name에서 .jsonl 제거 (있으면)
-        const cleanName = fileName.replace(/\.jsonl$/, '');
+        const chNameNoExt = avatar.replace(/\.[^.]+$/, ''); // .png 제거
 
         const response = await fetch('/api/chats/get', {
             method: 'POST',
-            headers,
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                ch_name: avatar,
-                file_name: cleanName,
+                ch_name: chNameNoExt,
+                file_name: fileName,
+                avatar_url: avatar,
             }),
         });
 
@@ -725,7 +723,7 @@ async function loadChatFileContent(charName, fileName) {
         const data = await response.json();
         const messages = Array.isArray(data) ? data : [];
         if (messages.length === 0) {
-            console.warn('[유서] Chat file empty or wrong format');
+            console.warn('[유서] Chat file empty');
             return '';
         }
 
@@ -736,7 +734,7 @@ async function loadChatFileContent(charName, fileName) {
             return `${speaker}: ${text}`;
         }).join('\n');
 
-        console.log('[유서] Chat file loaded:', cleanName, `(${recent.length} messages)`);
+        console.log('[유서] Chat file loaded:', fileName, `(${recent.length} messages)`);
         return result;
     } catch (err) {
         console.warn('[유서] Chat file load error:', err);
