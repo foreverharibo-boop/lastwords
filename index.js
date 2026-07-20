@@ -686,52 +686,17 @@ async function generateChatLastWords(charName, chatContext) {
     return await generateText(promptParts.join('\n'));
 }
 
-// ── 채팅 삭제 인터셉트 ──
+// ── 채팅 삭제 인터셉트 (이벤트 위임) ──
 let skipChatIntercept = false;
+let chatDeleteHooked = false;
 
 function hookChatDeleteButton() {
-    // ST 채팅 삭제 버튼 후보 셀렉터들 (넓은 범위)
-    const selectors = [
-        '.PastChat_cross',
-        '[data-i18n="[title]Delete chat file"]',
-        '#option_delete_chat',
-        '.del_chat',
-        '#del_chat_button',
-        '#chat_delete',
-        '[data-i18n="Delete chat"]',
-        '[data-i18n="Delete Chat"]',
-    ];
+    if (chatDeleteHooked) return;
+    chatDeleteHooked = true;
 
-    for (const sel of selectors) {
-        document.querySelectorAll(sel).forEach(btn => {
-            if (btn.dataset.yuseoChatHooked) return;
-            btn.dataset.yuseoChatHooked = 'true';
-            console.log('[유서] Chat delete button hooked:', sel, btn);
-            attachChatDeleteHandler(btn);
-        });
-    }
-
-    // 추가: 텍스트/아이콘 기반 탐지 — 과거 채팅 패널 안의 삭제 버튼
-    const pastChatsArea = document.querySelector('#past-chats-popup, .past_chat_manage, #chat-management, .select_chat_block_wrapper');
-    if (pastChatsArea) {
-        pastChatsArea.querySelectorAll('button, .menu_button, [role="button"]').forEach(btn => {
-            if (btn.dataset.yuseoChatHooked) return;
-            const text = (btn.textContent || '').toLowerCase();
-            const title = (btn.title || '').toLowerCase();
-            const cls = (btn.className || '').toLowerCase();
-            if (text.includes('delete') || text.includes('삭제') ||
-                title.includes('delete') || title.includes('삭제') ||
-                cls.includes('del_chat') || cls.includes('delete_chat')) {
-                btn.dataset.yuseoChatHooked = 'true';
-                console.log('[유서] Chat delete button hooked (text scan):', btn);
-                attachChatDeleteHandler(btn);
-            }
-        });
-    }
-}
-
-function attachChatDeleteHandler(btn) {
-    btn.addEventListener('click', async function (e) {
+    document.addEventListener('click', async function (e) {
+        const btn = e.target.closest('.PastChat_cross, [data-i18n="[title]Delete chat file"]');
+        if (!btn) return;
         if (skipChatIntercept || !settings()?.enabled) {
             skipChatIntercept = false;
             return;
@@ -740,6 +705,8 @@ function attachChatDeleteHandler(btn) {
         e.stopPropagation();
         e.stopImmediatePropagation();
         e.preventDefault();
+
+        console.log('[유서] Chat delete intercepted');
 
         const ctx = context();
         const charName = ctx?.name2;
@@ -754,9 +721,7 @@ function attachChatDeleteHandler(btn) {
         const chatContext = getRecentChatContext();
 
         const loadingDialog = showLoadingModal(charName);
-
         let lastWords = await generateChatLastWords(charName, chatContext);
-
         loadingDialog.close();
         loadingDialog.remove();
 
