@@ -763,6 +763,9 @@ function hookChatDeleteButton() {
         e.preventDefault();
 
         console.log('[유서] Chat delete intercepted');
+        console.log('[유서] btn element:', btn.tagName, btn.className);
+        console.log('[유서] btn file_name attr:', btn.getAttribute('file_name'));
+        console.log('[유서] btn all attrs:', [...btn.attributes].map(a => `${a.name}="${a.value}"`).join(', '));
 
         const ctx = context();
         const charName = ctx?.name2;
@@ -775,12 +778,17 @@ function hookChatDeleteButton() {
 
         // 삭제 대상 채팅 파일의 내용 가져오기
         const fileName = btn.getAttribute('file_name');
+        console.log('[유서] fileName:', fileName);
         let chatContext = '';
         if (fileName) {
             chatContext = await loadChatFileContent(charName, fileName);
+            console.log('[유서] chatContext length:', chatContext.length);
+        } else {
+            console.warn('[유서] file_name attribute not found on button');
         }
         if (!chatContext) {
-            chatContext = getRecentChatContext(); // 폴백: 현재 채팅
+            console.warn('[유서] Falling back to current chat!');
+            chatContext = getRecentChatContext();
         }
 
         const avatarUrl = getCharacterAvatarUrl();
