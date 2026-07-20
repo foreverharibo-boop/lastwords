@@ -408,10 +408,13 @@
 }
 
 /* ── 유서 생성 중 인포블럭 숨기기 (유서 다이얼로그 열려있을 때만) ── */
-body.yuseo-generating #chat .mes:last-child .mes_reasoning_details,
-body.yuseo-generating #chat .mes:last-child .mes_info_block,
-body.yuseo-generating #chat .mes:last-child .infoBlock,
-body.yuseo-generating #chat .mes:last-child .info_block,
-body.yuseo-generating #chat .mes:last-child details {
+body.yuseo-generating .mes_reasoning_details,
+body.yuseo-generating .mes_info_block,
+body.yuseo-generating .infoBlock,
+body.yuseo-generating .info_block,
+body.yuseo-generating .result_info,
+body.yuseo-generating #chat > details,
+body.yuseo-generating #chat details:last-child,
+body.yuseo-generating .quiet_prompt_info {
     display: none !important;
 }

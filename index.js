@@ -235,6 +235,27 @@ async function generateText(prompt, skipWIAN = false) {
     }
 }
 
+// ── 생성 텍스트 정리 (인포블럭/패널 제거) ──
+function cleanGeneratedText(text) {
+    if (!text) return text;
+
+    // <태그>...</태그> 형태의 블럭 제거 (info, panel, block, status, meta 등)
+    // 대소문자 무시, 언더스코어/하이픈/공백 포함
+    text = text.replace(/<\/?[A-Za-z_\- ]*(?:info|panel|block|status|meta|header|footer|system|ooc|note)[A-Za-z_\- ]*>/gi, '');
+
+    // 블럭 내용물도 제거: <Info_panel>내용</Info_panel> 통째로
+    text = text.replace(/<([A-Za-z_\-]*(?:info|panel|block|status|meta|header|footer|system|ooc|note)[A-Za-z_\-]*)>[\s\S]*?<\/\1>/gi, '');
+    text = text.replace(/<([A-Za-z_\-]*(?:info|panel|block|status|meta|header|footer|system|ooc|note)[A-Za-z_\-]*)>[\s\S]*?<\/[A-Za-z_\-]*>/gi, '');
+
+    // [Date: ...] [Weather: ...] [Location: ...] [Time: ...] 등 메타 정보 라인 제거
+    text = text.replace(/\[(?:Date|Weather|Location|Time|Scene|Place|BGM|OST|Music|Season|Temperature|Mood)[\s]*:[\s]*[^\]]*\]/gi, '');
+
+    // 빈 줄 정리
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+
+    return text;
+}
+
 // ── ST 연결 프로필 셀렉트 찾기 ──
 function findSTProfileSelect() {
     // 여러 셀렉터 후보 시도
@@ -358,7 +379,7 @@ async function generateLastWords(charName, chatContext) {
     }
     promptParts.push('', `최근 대화:`, chatContext);
 
-    return await generateText(promptParts.join('\n'));
+    return cleanGeneratedText(await generateText(promptParts.join('\n')));
 }
 
 // ── 귀환 메시지 생성 ──
@@ -704,7 +725,7 @@ async function generateChatLastWords(charName, chatContext) {
         chatContext,
     ];
 
-    return await generateText(promptParts.join('\n'), true);
+    return cleanGeneratedText(await generateText(promptParts.join('\n'), true));
 }
 
 // ── 특정 채팅 파일 내용 로드 ──
