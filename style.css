@@ -1,0 +1,307 @@
+/* ── 유서 (Last Words) ── */
+
+/* dialog 기본 리셋 */
+.yuseo-dialog {
+    border: none;
+    background: transparent;
+    padding: 0;
+    max-width: min(420px, 90vw);
+    width: 100%;
+    outline: none;
+}
+
+.yuseo-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* 모달 본체 */
+.yuseo-modal {
+    background: var(--SmartThemeBlurTintColor, #1a1a2e);
+    color: var(--SmartThemeBodyColor, #ccc);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 24px;
+    font-family: inherit;
+    animation: yuseo-fade-in 0.3s ease;
+}
+
+/* 헤더: 아바타 + 제목 */
+.yuseo-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.yuseo-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.yuseo-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.yuseo-title {
+    font-size: 1.15em;
+    font-weight: 600;
+    opacity: 0.9;
+    letter-spacing: -0.01em;
+}
+
+/* 구분선 */
+.yuseo-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 0;
+}
+
+/* 유서 본문 */
+.yuseo-body {
+    padding: 20px 4px;
+    min-height: 80px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.yuseo-text {
+    font-size: 0.95em;
+    line-height: 1.75;
+    margin: 0;
+    font-style: italic;
+    opacity: 0.85;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+}
+
+/* 액션 버튼 영역 */
+.yuseo-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    justify-content: center;
+}
+
+.yuseo-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    flex: 1;
+    max-width: 200px;
+}
+
+.yuseo-btn-cancel {
+    background: rgba(100, 140, 255, 0.15);
+    color: #8eaaff;
+    border: 1px solid rgba(100, 140, 255, 0.2);
+}
+
+.yuseo-btn-cancel:hover {
+    background: rgba(100, 140, 255, 0.25);
+}
+
+.yuseo-btn-delete {
+    background: rgba(255, 80, 80, 0.12);
+    color: #ff7b7b;
+    border: 1px solid rgba(255, 80, 80, 0.18);
+}
+
+.yuseo-btn-delete:hover {
+    background: rgba(255, 80, 80, 0.22);
+}
+
+.yuseo-btn-close {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--SmartThemeBodyColor, #ccc);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex: 0;
+    min-width: 100px;
+}
+
+.yuseo-btn-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* ── 로딩 ── */
+.yuseo-loading {
+    text-align: center;
+    padding: 40px 24px;
+}
+
+.yuseo-loading-icon {
+    font-size: 2em;
+    margin-bottom: 16px;
+    animation: yuseo-writing 1.5s ease-in-out infinite;
+}
+
+.yuseo-loading-text {
+    font-size: 0.95em;
+    opacity: 0.7;
+}
+
+/* ── 묘지 ── */
+.yuseo-graveyard-modal {
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.yuseo-graveyard-title {
+    font-size: 1.2em;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.yuseo-graveyard-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 2px;
+}
+
+.yuseo-grave-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 14px;
+    transition: opacity 0.3s ease;
+}
+
+.yuseo-grave-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.yuseo-grave-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.yuseo-grave-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.yuseo-grave-name {
+    font-weight: 600;
+    font-size: 0.95em;
+}
+
+.yuseo-grave-date {
+    font-size: 0.78em;
+    opacity: 0.45;
+}
+
+.yuseo-grave-remove {
+    padding: 4px 8px !important;
+    font-size: 0.8em !important;
+    opacity: 0.4;
+    min-width: unset !important;
+}
+
+.yuseo-grave-remove:hover {
+    opacity: 0.9;
+    color: #ff7b7b;
+}
+
+.yuseo-grave-words {
+    font-size: 0.88em;
+    line-height: 1.7;
+    opacity: 0.7;
+    font-style: italic;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+}
+
+.yuseo-empty {
+    text-align: center;
+    padding: 32px 16px;
+    opacity: 0.4;
+    font-size: 0.9em;
+}
+
+/* ── 설정 패널 ── */
+.yuseo-settings .inline-drawer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 0;
+}
+
+.yuseo-setting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.yuseo-desc {
+    opacity: 0.5;
+    font-size: 0.82em;
+    padding-left: 24px;
+}
+
+.yuseo-badge {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    margin-left: 6px;
+}
+
+/* ── 애니메이션 ── */
+@keyframes yuseo-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes yuseo-fade-out {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.95); }
+}
+
+@keyframes yuseo-writing {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+}
+
+/* ── 스크롤바 ── */
+.yuseo-body::-webkit-scrollbar,
+.yuseo-graveyard-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.yuseo-body::-webkit-scrollbar-thumb,
+.yuseo-graveyard-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}

@@ -1,0 +1,12 @@
+{
+    "display_name": "유서 (Last Words)",
+    "loading_order": 100,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "foreverharibo",
+    "version": "1.0.0",
+    "homePage": "",
+    "auto_update": false
+}
