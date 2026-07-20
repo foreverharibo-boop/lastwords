@@ -370,14 +370,13 @@ async function addCharacterMessage(text) {
 }
 
 // ── 묘지에 저장 ──
-function saveToGraveyard(charName, lastWords, avatarUrl) {
+function saveToGraveyard(charName, lastWords) {
     const s = settings();
     if (!s) return;
 
     const entry = {
         id: Date.now(),
         name: charName,
-        avatar: avatarUrl || '',
         lastWords: lastWords,
         date: new Date().toLocaleDateString('ko-KR'),
     };
@@ -507,7 +506,6 @@ function showGraveyardDialog() {
         entriesHtml = graveyard.map(entry => `
             <div class="yuseo-grave-card" data-id="${entry.id}">
                 <div class="yuseo-grave-header">
-                    ${entry.avatar ? `<img class="yuseo-grave-avatar" src="${entry.avatar}" alt="">` : ''}
                     <div class="yuseo-grave-info">
                         <span class="yuseo-grave-name">${entry.name}</span>
                         <span class="yuseo-grave-date">${entry.date}</span>
@@ -627,7 +625,7 @@ function hookDeleteButton() {
         const choice = await showLastWordsModal(charName, lastWords, avatarUrl);
 
         if (choice === 'delete') {
-            saveToGraveyard(charName, lastWords, avatarUrl);
+            saveToGraveyard(charName, lastWords);
             skipIntercept = true;
             deleteBtn.click();
         }
