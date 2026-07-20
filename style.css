@@ -406,3 +406,12 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
 }
+
+/* ── 유서 생성 중 인포블럭 숨기기 (유서 다이얼로그 열려있을 때만) ── */
+body.yuseo-generating #chat .mes:last-child .mes_reasoning_details,
+body.yuseo-generating #chat .mes:last-child .mes_info_block,
+body.yuseo-generating #chat .mes:last-child .infoBlock,
+body.yuseo-generating #chat .mes:last-child .info_block,
+body.yuseo-generating #chat .mes:last-child details {
+    display: none !important;
+}

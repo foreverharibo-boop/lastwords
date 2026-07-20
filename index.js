@@ -172,7 +172,7 @@ function getRecentChatContext(maxMessages = 30) {
 }
 
 // ── AI 생성 호출 ──
-async function generateText(prompt) {
+async function generateText(prompt, skipWIAN = false) {
     try {
         if (!stModules.generateQuietPrompt) {
             console.warn('[유서] generateQuietPrompt not available');
@@ -194,19 +194,28 @@ async function generateText(prompt) {
             }
         }
 
-        const result = await stModules.generateQuietPrompt(prompt, false, false);
+        // skipWIAN=true면 월드인포/작가노트/현재채팅 주입 차단
+        document.body.classList.add('yuseo-generating');
+        const result = await stModules.generateQuietPrompt(prompt, false, skipWIAN);
 
-        // 인포블럭 강제 제거
-        requestAnimationFrame(() => {
-            const infoBlocks = document.querySelectorAll(
-                '#chat .last_mes .mes_block .mes_reasoning_details, ' +
-                '#chat .last_mes .mes_block .mes_info_block, ' +
-                '.quiet_prompt_info, ' +
-                '#chat .last_mes .infoBlock, ' +
-                '#chat .last_mes .info_block'
-            );
-            infoBlocks.forEach(el => el.remove());
-        });
+        // 인포블럭 강제 제거 (여러 번 반복해서 확실히 잡기)
+        const removeInfoBlocks = () => {
+            document.querySelectorAll(
+                '.mes_reasoning_details, .mes_info_block, .quiet_prompt_info, ' +
+                '.infoBlock, .info_block, [class*="info_block"], [class*="infoBlock"], ' +
+                '.mes_block details'
+            ).forEach(el => {
+                // 마지막 메시지에 속한 것만 제거
+                const mes = el.closest('.mes');
+                if (mes && mes === document.querySelector('#chat .mes:last-child')) {
+                    el.remove();
+                }
+            });
+        };
+        removeInfoBlocks();
+        requestAnimationFrame(removeInfoBlocks);
+        setTimeout(removeInfoBlocks, 100);
+        setTimeout(removeInfoBlocks, 500);
 
         // 원래 프로필로 복원
         if (previousProfile) {
@@ -221,6 +230,8 @@ async function generateText(prompt) {
     } catch (err) {
         console.error('[유서] Generation failed:', err);
         return '';
+    } finally {
+        document.body.classList.remove('yuseo-generating');
     }
 }
 
@@ -693,7 +704,7 @@ async function generateChatLastWords(charName, chatContext) {
         chatContext,
     ];
 
-    return await generateText(promptParts.join('\n'));
+    return await generateText(promptParts.join('\n'), true);
 }
 
 // ── 특정 채팅 파일 내용 로드 ──
@@ -721,12 +732,19 @@ async function loadChatFileContent(charName, fileName) {
 
         const data = await response.json();
         const messages = Array.isArray(data) ? data : [];
+        console.log('[유서] API returned:', messages.length, 'total items');
+        if (messages.length > 0) {
+            console.log('[유서] First item keys:', Object.keys(messages[0]));
+            console.log('[유서] Last item keys:', Object.keys(messages[messages.length - 1]));
+            console.log('[유서] Sample is_system values:', messages.slice(0, 5).map(m => m.is_system));
+        }
         if (messages.length === 0) {
             console.warn('[유서] Chat file empty');
             return '';
         }
 
         const recent = messages.slice(-30).filter(m => !m.is_system);
+        console.log('[유서] After filter:', recent.length, 'messages');
         const result = recent.map(m => {
             const speaker = m.is_user ? 'User' : (m.name || 'Character');
             const text = (m.mes || '').slice(0, 200);
