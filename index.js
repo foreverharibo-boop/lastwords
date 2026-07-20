@@ -386,9 +386,8 @@ function saveToGraveyard(charName, lastWords, avatarUrl) {
     updateGraveyardBadge();
 }
 
-// ── 불투명 배경색 계산 ──
+// ── 불투명 배경색 + 고대비 글씨색 계산 ──
 function getOpaqueColors() {
-    // ST CSS 변수에서 색상 읽어서 알파 강제 1로
     const temp = document.createElement('div');
     temp.style.display = 'none';
     document.body.appendChild(temp);
@@ -396,25 +395,28 @@ function getOpaqueColors() {
     temp.style.color = 'var(--SmartThemeBlurTintColor, #1a1a2e)';
     const bgRaw = getComputedStyle(temp).color;
 
-    temp.style.color = 'var(--SmartThemeBodyColor, #e0e0e0)';
-    const fgRaw = getComputedStyle(temp).color;
-
     document.body.removeChild(temp);
 
-    // rgba → rgb 변환 (알파 제거)
-    const toOpaque = (c) => {
+    // rgba → rgb 값 추출
+    const parseRgb = (c) => {
         const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-        if (m) return `rgb(${m[1]}, ${m[2]}, ${m[3]})`;
-        return c;
+        if (m) return { r: +m[1], g: +m[2], b: +m[3] };
+        return { r: 26, g: 26, b: 46 }; // 폴백
     };
 
-    return {
-        bg: toOpaque(bgRaw),
-        fg: toOpaque(fgRaw),
-    };
+    const bg = parseRgb(bgRaw);
+    const bgStr = `rgb(${bg.r}, ${bg.g}, ${bg.b})`;
+
+    // 배경 밝기 계산 (상대 휘도)
+    const luminance = (0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b) / 255;
+
+    // 밝은 배경이면 검은 글씨, 어두운 배경이면 흰 글씨
+    const fgStr = luminance > 0.5 ? '#111111' : '#f0f0f0';
+
+    return { bg: bgStr, fg: fgStr };
 }
 
-// ── 모달에 불투명 스타일 적용 ──
+// ── 모달에 불투명 + 고대비 스타일 적용 ──
 function applyOpaqueStyle(modalEl) {
     const colors = getOpaqueColors();
     modalEl.style.setProperty('background', colors.bg, 'important');
