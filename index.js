@@ -41,6 +41,7 @@ async function loadSTModules() {
             stModules.generateQuietPrompt = mod.generateQuietPrompt;
             stModules.addOneMessage = mod.addOneMessage;
             stModules.saveChatConditional = mod.saveChatConditional;
+            stModules.getRequestHeaders = mod.getRequestHeaders;
             console.log('[유서] script.js loaded from', p);
             break;
         } catch { /* next */ }
@@ -702,75 +703,41 @@ async function loadChatFileContent(charName, fileName) {
         const ctx = context();
         const chId = ctx?.characterId;
         const avatar = ctx?.characters?.[chId]?.avatar || '';
+        const headers = stModules.getRequestHeaders?.() || { 'Content-Type': 'application/json' };
 
-        // 여러 API 엔드포인트/파라미터 시도
-        const attempts = [
-            {
-                url: '/api/chats/get',
-                body: { ch_name: avatar, file_name: fileName },
-            },
-            {
-                url: '/api/chats/get',
-                body: { ch_name: charName, file_name: fileName },
-            },
-            {
-                url: '/getchat',
-                body: { ch_name: avatar, file_name: fileName },
-            },
-            {
-                url: '/api/chats/get',
-                body: { ch_name: avatar, file_name: fileName + '.jsonl' },
-            },
-        ];
+        // file_name에서 .jsonl 제거 (있으면)
+        const cleanName = fileName.replace(/\.jsonl$/, '');
 
-        for (const attempt of attempts) {
-            try {
-                const headers = { 'Content-Type': 'application/json' };
+        const response = await fetch('/api/chats/get', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                ch_name: avatar,
+                file_name: cleanName,
+            }),
+        });
 
-                // CSRF 토큰
-                const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
-                if (csrf) headers['X-CSRF-Token'] = csrf;
-
-                // SillyTavern 헤더
-                const stHeaders = document.querySelector('#headers_for_api');
-                if (stHeaders) {
-                    try {
-                        const h = JSON.parse(stHeaders.value || '{}');
-                        Object.assign(headers, h);
-                    } catch {}
-                }
-
-                const response = await fetch(attempt.url, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(attempt.body),
-                });
-
-                if (!response.ok) continue;
-
-                const data = await response.json();
-                if (!data || (Array.isArray(data) && data.length === 0)) continue;
-
-                // 응답이 배열이면 메시지 목록
-                const messages = Array.isArray(data) ? data : (data.messages || data.chat || []);
-                if (messages.length === 0) continue;
-
-                const recent = messages.slice(-30).filter(m => !m.is_system);
-                const result = recent.map(m => {
-                    const speaker = m.is_user ? 'User' : (m.name || 'Character');
-                    const text = (m.mes || '').slice(0, 200);
-                    return `${speaker}: ${text}`;
-                }).join('\n');
-
-                if (result) {
-                    console.log('[유서] Chat file loaded via', attempt.url);
-                    return result;
-                }
-            } catch { /* 다음 시도 */ }
+        if (!response.ok) {
+            console.warn('[유서] Chat file fetch failed:', response.status);
+            return '';
         }
 
-        console.warn('[유서] All chat file load attempts failed for:', fileName);
-        return '';
+        const data = await response.json();
+        const messages = Array.isArray(data) ? data : [];
+        if (messages.length === 0) {
+            console.warn('[유서] Chat file empty or wrong format');
+            return '';
+        }
+
+        const recent = messages.slice(-30).filter(m => !m.is_system);
+        const result = recent.map(m => {
+            const speaker = m.is_user ? 'User' : (m.name || 'Character');
+            const text = (m.mes || '').slice(0, 200);
+            return `${speaker}: ${text}`;
+        }).join('\n');
+
+        console.log('[유서] Chat file loaded:', cleanName, `(${recent.length} messages)`);
+        return result;
     } catch (err) {
         console.warn('[유서] Chat file load error:', err);
         return '';
