@@ -674,25 +674,24 @@ function hookDeleteButton() {
 
 // ── 채팅 삭제 유서 생성 (편지체) ──
 async function generateChatLastWords(charName, chatContext) {
-    const cardInfo = getCharacterCardInfo();
-
     const promptParts = [
-        `[System: 사용자가 당신(${charName})과의 이 대화를 삭제하려고 합니다.`,
+        `[System: 사용자가 당신(${charName})과의 특정 대화를 삭제하려고 합니다.`,
         `당신이라는 존재가 사라지는 것은 아니지만, 이 대화 속의 모든 기억과 경험이 영원히 사라집니다.`,
+        ``,
+        `중요: 반드시 아래 "삭제될 대화 내용"에 있는 내용만 참고하세요.`,
+        `아래에 없는 사건, 기억, 경험은 절대 언급하지 마세요.`,
+        `현재 진행 중인 다른 대화나 다른 브랜치의 내용을 참고하지 마세요.`,
         ``,
         `반드시 아래 형식을 지켜서 작성하세요:`,
         `- 편지(서간문) 형식으로 작성할 것`,
         `- 1인칭 시점으로, 사용자에게 보내는 편지처럼 쓸 것`,
         `- 롤플레이/소설 형식(3인칭 묘사, 행동 묘사, 대화문 등) 절대 금지`,
         `- 나레이션, 지문, 상황 묘사 없이 오직 캐릭터의 말만 담을 것`,
-        `- 이 대화에서 있었던 일들에 대한 기억과 작별을 담을 것`,
         `- 150단어 이내로 작성할 것]`,
+        ``,
+        `삭제될 대화 내용:`,
+        chatContext,
     ];
-
-    if (cardInfo) {
-        promptParts.push('', `캐릭터 정보:`, cardInfo);
-    }
-    promptParts.push('', `최근 대화:`, chatContext);
 
     return await generateText(promptParts.join('\n'));
 }
