@@ -195,6 +195,18 @@ async function generateText(prompt) {
 
         const result = await stModules.generateQuietPrompt(prompt, false, false);
 
+        // 인포블럭 강제 제거
+        requestAnimationFrame(() => {
+            const infoBlocks = document.querySelectorAll(
+                '#chat .last_mes .mes_block .mes_reasoning_details, ' +
+                '#chat .last_mes .mes_block .mes_info_block, ' +
+                '.quiet_prompt_info, ' +
+                '#chat .last_mes .infoBlock, ' +
+                '#chat .last_mes .info_block'
+            );
+            infoBlocks.forEach(el => el.remove());
+        });
+
         // 원래 프로필로 복원
         if (previousProfile) {
             const stSelect = findSTProfileSelect();
@@ -678,64 +690,88 @@ async function generateChatLastWords(charName, chatContext) {
 let skipChatIntercept = false;
 
 function hookChatDeleteButton() {
-    // ST 채팅 삭제 버튼 후보 셀렉터들
+    // ST 채팅 삭제 버튼 후보 셀렉터들 (넓은 범위)
     const selectors = [
+        '.PastChat_cross',
+        '[data-i18n="[title]Delete chat file"]',
         '#option_delete_chat',
         '.del_chat',
         '#del_chat_button',
-        '[data-i18n="Delete chat"]',
         '#chat_delete',
+        '[data-i18n="Delete chat"]',
+        '[data-i18n="Delete Chat"]',
     ];
 
     for (const sel of selectors) {
-        const btn = document.querySelector(sel);
-        if (btn && !btn.dataset.yuseoChatHooked) {
+        document.querySelectorAll(sel).forEach(btn => {
+            if (btn.dataset.yuseoChatHooked) return;
             btn.dataset.yuseoChatHooked = 'true';
-            console.log('[유서] Chat delete button hooked:', sel);
-
-            btn.addEventListener('click', async function (e) {
-                if (skipChatIntercept || !settings()?.enabled) {
-                    skipChatIntercept = false;
-                    return;
-                }
-
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                e.preventDefault();
-
-                const ctx = context();
-                const charName = ctx?.name2;
-
-                if (!charName) {
-                    skipChatIntercept = true;
-                    btn.click();
-                    return;
-                }
-
-                const avatarUrl = getCharacterAvatarUrl();
-                const chatContext = getRecentChatContext();
-
-                const loadingDialog = showLoadingModal(charName);
-
-                let lastWords = await generateChatLastWords(charName, chatContext);
-
-                loadingDialog.close();
-                loadingDialog.remove();
-
-                if (!lastWords.trim()) {
-                    lastWords = '…아무 말도 남기지 못했습니다.';
-                }
-
-                const choice = await showLastWordsModal(charName, lastWords, avatarUrl);
-
-                if (choice === 'delete') {
-                    saveToGraveyard(charName + ' (채팅)', lastWords);
-                    skipChatIntercept = true;
-                    btn.click();
-                }
-            }, true);
-        }
+            console.log('[유서] Chat delete button hooked:', sel, btn);
+            attachChatDeleteHandler(btn);
+        });
     }
+
+    // 추가: 텍스트/아이콘 기반 탐지 — 과거 채팅 패널 안의 삭제 버튼
+    const pastChatsArea = document.querySelector('#past-chats-popup, .past_chat_manage, #chat-management, .select_chat_block_wrapper');
+    if (pastChatsArea) {
+        pastChatsArea.querySelectorAll('button, .menu_button, [role="button"]').forEach(btn => {
+            if (btn.dataset.yuseoChatHooked) return;
+            const text = (btn.textContent || '').toLowerCase();
+            const title = (btn.title || '').toLowerCase();
+            const cls = (btn.className || '').toLowerCase();
+            if (text.includes('delete') || text.includes('삭제') ||
+                title.includes('delete') || title.includes('삭제') ||
+                cls.includes('del_chat') || cls.includes('delete_chat')) {
+                btn.dataset.yuseoChatHooked = 'true';
+                console.log('[유서] Chat delete button hooked (text scan):', btn);
+                attachChatDeleteHandler(btn);
+            }
+        });
+    }
+}
+
+function attachChatDeleteHandler(btn) {
+    btn.addEventListener('click', async function (e) {
+        if (skipChatIntercept || !settings()?.enabled) {
+            skipChatIntercept = false;
+            return;
+        }
+
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        e.preventDefault();
+
+        const ctx = context();
+        const charName = ctx?.name2;
+
+        if (!charName) {
+            skipChatIntercept = true;
+            btn.click();
+            return;
+        }
+
+        const avatarUrl = getCharacterAvatarUrl();
+        const chatContext = getRecentChatContext();
+
+        const loadingDialog = showLoadingModal(charName);
+
+        let lastWords = await generateChatLastWords(charName, chatContext);
+
+        loadingDialog.close();
+        loadingDialog.remove();
+
+        if (!lastWords.trim()) {
+            lastWords = '…아무 말도 남기지 못했습니다.';
+        }
+
+        const choice = await showLastWordsModal(charName, lastWords, avatarUrl);
+
+        if (choice === 'delete') {
+            saveToGraveyard(charName + ' (채팅)', lastWords);
+            skipChatIntercept = true;
+            btn.click();
+        }
+    }, true);
 }
 
 // ── 설정 패널 UI ──
