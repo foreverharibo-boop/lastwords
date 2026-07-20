@@ -4,8 +4,10 @@
 const extensionName = 'yuseo';
 const defaultSettings = {
     enabled: true,
+    enableCharDelete: true,
+    enableChatDelete: true,
     graveyard: [],
-    connectionProfile: '', // 빈 문자열 = 현재 활성 프로필 사용
+    connectionProfile: '',
 };
 
 let skipIntercept = false;
@@ -83,6 +85,8 @@ function loadSettings() {
     ext[extensionName] = ext[extensionName] || {};
     const s = ext[extensionName];
     if (s.enabled === undefined) s.enabled = defaultSettings.enabled;
+    if (s.enableCharDelete === undefined) s.enableCharDelete = defaultSettings.enableCharDelete;
+    if (s.enableChatDelete === undefined) s.enableChatDelete = defaultSettings.enableChatDelete;
     if (!Array.isArray(s.graveyard)) s.graveyard = [];
     if (s.connectionProfile === undefined) s.connectionProfile = '';
 }
@@ -662,11 +666,10 @@ function hookDeleteButton() {
     deleteBtn.dataset.yuseoHooked = 'true';
 
     deleteBtn.addEventListener('click', async function (e) {
-        if (skipIntercept || !settings()?.enabled) {
+        if (skipIntercept || !settings()?.enabled || !settings()?.enableCharDelete) {
             skipIntercept = false;
             return;
         }
-
         e.stopPropagation();
         e.stopImmediatePropagation();
         e.preventDefault();
@@ -795,7 +798,7 @@ function hookChatDeleteButton() {
     document.addEventListener('click', async function (e) {
         const btn = e.target.closest('.PastChat_cross, [data-i18n="[title]Delete chat file"]');
         if (!btn) return;
-        if (skipChatIntercept || !settings()?.enabled) {
+        if (skipChatIntercept || !settings()?.enabled || !settings()?.enableChatDelete) {
             skipChatIntercept = false;
             return;
         }
@@ -874,6 +877,18 @@ function createSettingsUI() {
                         </label>
                     </div>
                     <div class="yuseo-setting-row">
+                        <label class="checkbox_label">
+                            <input type="checkbox" id="yuseo-char-delete" ${s.enableCharDelete ? 'checked' : ''}>
+                            <span>캐릭터 삭제 유서</span>
+                        </label>
+                    </div>
+                    <div class="yuseo-setting-row">
+                        <label class="checkbox_label">
+                            <input type="checkbox" id="yuseo-chat-delete" ${s.enableChatDelete ? 'checked' : ''}>
+                            <span>채팅 삭제 유서</span>
+                        </label>
+                    </div>
+                    <div class="yuseo-setting-row">
                         <label for="yuseo-profile-select">연결 프로필</label>
                         <select id="yuseo-profile-select" class="text_pole">
                             <option value="">현재 활성 프로필 사용</option>
@@ -899,6 +914,22 @@ function createSettingsUI() {
         const s2 = settings();
         if (s2) {
             s2.enabled = this.checked;
+            context()?.saveSettings?.();
+        }
+    });
+
+    jQuery('#yuseo-char-delete').on('change', function () {
+        const s2 = settings();
+        if (s2) {
+            s2.enableCharDelete = this.checked;
+            context()?.saveSettings?.();
+        }
+    });
+
+    jQuery('#yuseo-chat-delete').on('change', function () {
+        const s2 = settings();
+        if (s2) {
+            s2.enableChatDelete = this.checked;
             context()?.saveSettings?.();
         }
     });
