@@ -239,18 +239,22 @@ async function generateText(prompt, skipWIAN = false) {
 function cleanGeneratedText(text) {
     if (!text) return text;
 
-    // <태그>...</태그> 형태의 블럭 제거 (info, panel, block, status, meta 등)
-    // 대소문자 무시, 언더스코어/하이픈/공백 포함
-    text = text.replace(/<\/?[A-Za-z_\- ]*(?:info|panel|block|status|meta|header|footer|system|ooc|note)[A-Za-z_\- ]*>/gi, '');
+    // 1단계: <태그>내용</태그> 블럭 통째로 제거 (먼저!)
+    text = text.replace(/<([A-Za-z_\-\s]*?)>([\s\S]*?)<\/[A-Za-z_\-\s]*?>/g, (match, tag) => {
+        const t = tag.toLowerCase().replace(/[\s_\-]/g, '');
+        if (/info|panel|block|status|meta|header|footer|system|ooc|note|scene/.test(t)) {
+            return '';
+        }
+        return match;
+    });
 
-    // 블럭 내용물도 제거: <Info_panel>내용</Info_panel> 통째로
-    text = text.replace(/<([A-Za-z_\-]*(?:info|panel|block|status|meta|header|footer|system|ooc|note)[A-Za-z_\-]*)>[\s\S]*?<\/\1>/gi, '');
-    text = text.replace(/<([A-Za-z_\-]*(?:info|panel|block|status|meta|header|footer|system|ooc|note)[A-Za-z_\-]*)>[\s\S]*?<\/[A-Za-z_\-]*>/gi, '');
+    // 2단계: 남은 빈 태그 제거
+    text = text.replace(/<\/?[A-Za-z_\-\s]*(?:info|panel|block|status|meta|header|footer|system|ooc|note|scene)[A-Za-z_\-\s]*>/gi, '');
 
-    // [Date: ...] [Weather: ...] [Location: ...] [Time: ...] 등 메타 정보 라인 제거
-    text = text.replace(/\[(?:Date|Weather|Location|Time|Scene|Place|BGM|OST|Music|Season|Temperature|Mood)[\s]*:[\s]*[^\]]*\]/gi, '');
+    // 3단계: [Date: ...] [Weather: ...] 등 메타 라인 제거
+    text = text.replace(/\[(?:Date|Weather|Location|Time|Scene|Place|BGM|OST|Music|Season|Temperature|Mood|Setting)[\s]*:[^\]]*\]/gi, '');
 
-    // 빈 줄 정리
+    // 4단계: 빈 줄 정리
     text = text.replace(/\n{3,}/g, '\n\n').trim();
 
     return text;
