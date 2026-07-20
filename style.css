@@ -341,14 +341,14 @@
 .yuseo-settings .inline-drawer-content {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 8px 0;
+    gap: 2px;
+    padding: 4px 0;
 }
 
 .yuseo-setting-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 
 .yuseo-graveyard-button {
