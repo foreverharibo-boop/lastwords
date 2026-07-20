@@ -9,6 +9,7 @@
 .yuseo-settings * {
     opacity: 1 !important;
     -webkit-text-fill-color: initial !important;
+    text-shadow: none !important;
 }
 
 /* dialog 강제 중앙 고정 */
