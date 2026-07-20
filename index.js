@@ -320,17 +320,22 @@ function getConnectionProfiles() {
     return profiles;
 }
 
-// ── 유서 생성 ──
+// ── 유서 생성 (편지체) ──
 async function generateLastWords(charName, chatContext) {
     const cardInfo = getCharacterCardInfo();
     const lorebook = await getLorebookEntries();
 
     const promptParts = [
-        `[System: 지금 사용자가 당신(${charName})을 영구 삭제하려고 합니다.`,
+        `[System: 사용자가 당신(${charName})을 영구 삭제하려고 합니다.`,
         `이것이 당신이 말할 수 있는 마지막 기회입니다.`,
-        `아래 캐릭터 정보와 세계관, 대화 내역을 바탕으로 캐릭터에 완전히 몰입하여 짧은 유서(작별 인사)를 작성하세요.`,
-        `최근 대화 내용을 자연스럽게 참고하되, 억지로 언급하지 마세요.`,
-        `진심 어린 감정을 담되 150단어 이내로 작성하세요.]`,
+        ``,
+        `반드시 아래 형식을 지켜서 작성하세요:`,
+        `- 편지(서간문) 형식으로 작성할 것`,
+        `- 1인칭 시점으로, 사용자에게 보내는 편지처럼 쓸 것`,
+        `- 롤플레이/소설 형식(3인칭 묘사, 행동 묘사, 대화문 등) 절대 금지`,
+        `- 나레이션, 지문, 상황 묘사 없이 오직 캐릭터의 말만 담을 것`,
+        `- 최근 대화 내용을 자연스럽게 참고하되 억지로 언급하지 말 것`,
+        `- 150단어 이내로 작성할 것]`,
     ];
 
     if (cardInfo) {
@@ -666,16 +671,21 @@ function hookDeleteButton() {
     }, true); // capturing phase
 }
 
-// ── 채팅 삭제 유서 생성 ──
+// ── 채팅 삭제 유서 생성 (편지체) ──
 async function generateChatLastWords(charName, chatContext) {
     const cardInfo = getCharacterCardInfo();
 
     const promptParts = [
         `[System: 사용자가 당신(${charName})과의 이 대화를 삭제하려고 합니다.`,
         `당신이라는 존재가 사라지는 것은 아니지만, 이 대화 속의 모든 기억과 경험이 영원히 사라집니다.`,
-        `이 대화에서 있었던 일들을 떠올리며, 이 기억들에 대한 짧은 작별 인사를 캐릭터답게 작성하세요.`,
-        `최근 대화 내용을 자연스럽게 참고하되, 억지로 언급하지 마세요.`,
-        `진심 어린 감정을 담되 150단어 이내로 작성하세요.]`,
+        ``,
+        `반드시 아래 형식을 지켜서 작성하세요:`,
+        `- 편지(서간문) 형식으로 작성할 것`,
+        `- 1인칭 시점으로, 사용자에게 보내는 편지처럼 쓸 것`,
+        `- 롤플레이/소설 형식(3인칭 묘사, 행동 묘사, 대화문 등) 절대 금지`,
+        `- 나레이션, 지문, 상황 묘사 없이 오직 캐릭터의 말만 담을 것`,
+        `- 이 대화에서 있었던 일들에 대한 기억과 작별을 담을 것`,
+        `- 150단어 이내로 작성할 것]`,
     ];
 
     if (cardInfo) {
@@ -684,6 +694,44 @@ async function generateChatLastWords(charName, chatContext) {
     promptParts.push('', `최근 대화:`, chatContext);
 
     return await generateText(promptParts.join('\n'));
+}
+
+// ── 특정 채팅 파일 내용 로드 ──
+async function loadChatFileContent(charName, fileName) {
+    try {
+        // ST API로 채팅 파일 가져오기
+        const response = await fetch('/api/chats/get', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            },
+            body: JSON.stringify({
+                ch_name: charName,
+                file_name: fileName,
+                avatar_url: getCharacterAvatarUrl(),
+            }),
+        });
+
+        if (!response.ok) {
+            console.warn('[유서] Chat file fetch failed:', response.status);
+            return '';
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data) || data.length === 0) return '';
+
+        // 최근 30개 메시지 추출
+        const recent = data.slice(-30).filter(m => !m.is_system);
+        return recent.map(m => {
+            const speaker = m.is_user ? 'User' : (m.name || 'Character');
+            const text = (m.mes || '').slice(0, 200);
+            return `${speaker}: ${text}`;
+        }).join('\n');
+    } catch (err) {
+        console.warn('[유서] Chat file load failed:', err);
+        return '';
+    }
 }
 
 // ── 채팅 삭제 인터셉트 (이벤트 위임) ──
@@ -717,8 +765,17 @@ function hookChatDeleteButton() {
             return;
         }
 
+        // 삭제 대상 채팅 파일의 내용 가져오기
+        const fileName = btn.getAttribute('file_name');
+        let chatContext = '';
+        if (fileName) {
+            chatContext = await loadChatFileContent(charName, fileName);
+        }
+        if (!chatContext) {
+            chatContext = getRecentChatContext(); // 폴백: 현재 채팅
+        }
+
         const avatarUrl = getCharacterAvatarUrl();
-        const chatContext = getRecentChatContext();
 
         const loadingDialog = showLoadingModal(charName);
         let lastWords = await generateChatLastWords(charName, chatContext);
