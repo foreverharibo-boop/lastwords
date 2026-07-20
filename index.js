@@ -699,37 +699,80 @@ async function generateChatLastWords(charName, chatContext) {
 // ── 특정 채팅 파일 내용 로드 ──
 async function loadChatFileContent(charName, fileName) {
     try {
-        // ST API로 채팅 파일 가져오기
-        const response = await fetch('/api/chats/get', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            },
-            body: JSON.stringify({
-                ch_name: charName,
-                file_name: fileName,
-                avatar_url: getCharacterAvatarUrl(),
-            }),
-        });
+        const ctx = context();
+        const chId = ctx?.characterId;
+        const avatar = ctx?.characters?.[chId]?.avatar || '';
 
-        if (!response.ok) {
-            console.warn('[유서] Chat file fetch failed:', response.status);
-            return '';
+        // 여러 API 엔드포인트/파라미터 시도
+        const attempts = [
+            {
+                url: '/api/chats/get',
+                body: { ch_name: avatar, file_name: fileName },
+            },
+            {
+                url: '/api/chats/get',
+                body: { ch_name: charName, file_name: fileName },
+            },
+            {
+                url: '/getchat',
+                body: { ch_name: avatar, file_name: fileName },
+            },
+            {
+                url: '/api/chats/get',
+                body: { ch_name: avatar, file_name: fileName + '.jsonl' },
+            },
+        ];
+
+        for (const attempt of attempts) {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+
+                // CSRF 토큰
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (csrf) headers['X-CSRF-Token'] = csrf;
+
+                // SillyTavern 헤더
+                const stHeaders = document.querySelector('#headers_for_api');
+                if (stHeaders) {
+                    try {
+                        const h = JSON.parse(stHeaders.value || '{}');
+                        Object.assign(headers, h);
+                    } catch {}
+                }
+
+                const response = await fetch(attempt.url, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(attempt.body),
+                });
+
+                if (!response.ok) continue;
+
+                const data = await response.json();
+                if (!data || (Array.isArray(data) && data.length === 0)) continue;
+
+                // 응답이 배열이면 메시지 목록
+                const messages = Array.isArray(data) ? data : (data.messages || data.chat || []);
+                if (messages.length === 0) continue;
+
+                const recent = messages.slice(-30).filter(m => !m.is_system);
+                const result = recent.map(m => {
+                    const speaker = m.is_user ? 'User' : (m.name || 'Character');
+                    const text = (m.mes || '').slice(0, 200);
+                    return `${speaker}: ${text}`;
+                }).join('\n');
+
+                if (result) {
+                    console.log('[유서] Chat file loaded via', attempt.url);
+                    return result;
+                }
+            } catch { /* 다음 시도 */ }
         }
 
-        const data = await response.json();
-        if (!Array.isArray(data) || data.length === 0) return '';
-
-        // 최근 30개 메시지 추출
-        const recent = data.slice(-30).filter(m => !m.is_system);
-        return recent.map(m => {
-            const speaker = m.is_user ? 'User' : (m.name || 'Character');
-            const text = (m.mes || '').slice(0, 200);
-            return `${speaker}: ${text}`;
-        }).join('\n');
+        console.warn('[유서] All chat file load attempts failed for:', fileName);
+        return '';
     } catch (err) {
-        console.warn('[유서] Chat file load failed:', err);
+        console.warn('[유서] Chat file load error:', err);
         return '';
     }
 }
