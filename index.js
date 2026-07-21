@@ -869,7 +869,7 @@ function createSettingsUI() {
                     <b>유서 (Last Words)</b>
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
                 </div>
-                <div class="inline-drawer-content">
+                <div class="inline-drawer-content" style="display: none;">
                     <div class="yuseo-setting-row">
                         <label class="checkbox_label">
                             <input type="checkbox" id="yuseo-enabled" ${s.enabled ? 'checked' : ''}>
