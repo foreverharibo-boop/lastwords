@@ -41,6 +41,7 @@ async function loadSTModules() {
         try {
             const mod = await import(p);
             stModules.generateQuietPrompt = mod.generateQuietPrompt;
+            stModules.generateRaw = mod.generateRaw;
             stModules.addOneMessage = mod.addOneMessage;
             stModules.saveChatConditional = mod.saveChatConditional;
             stModules.getRequestHeaders = mod.getRequestHeaders;
@@ -178,11 +179,6 @@ function getRecentChatContext(maxMessages = 30) {
 // ── AI 생성 호출 ──
 async function generateText(prompt, skipWIAN = false) {
     try {
-        if (!stModules.generateQuietPrompt) {
-            console.warn('[유서] generateQuietPrompt not available');
-            return '';
-        }
-
         const s = settings();
         const selectedProfile = s?.connectionProfile || '';
         let previousProfile = '';
@@ -198,28 +194,42 @@ async function generateText(prompt, skipWIAN = false) {
             }
         }
 
-        // skipWIAN=true면 월드인포/작가노트/현재채팅 주입 차단
         document.body.classList.add('yuseo-generating');
-        const result = await stModules.generateQuietPrompt(prompt, false, skipWIAN);
+        let result = '';
 
-        // 인포블럭 강제 제거 (여러 번 반복해서 확실히 잡기)
-        const removeInfoBlocks = () => {
-            document.querySelectorAll(
-                '.mes_reasoning_details, .mes_info_block, .quiet_prompt_info, ' +
-                '.infoBlock, .info_block, [class*="info_block"], [class*="infoBlock"], ' +
-                '.mes_block details'
-            ).forEach(el => {
-                // 마지막 메시지에 속한 것만 제거
-                const mes = el.closest('.mes');
-                if (mes && mes === document.querySelector('#chat .mes:last-child')) {
-                    el.remove();
-                }
-            });
-        };
-        removeInfoBlocks();
-        requestAnimationFrame(removeInfoBlocks);
-        setTimeout(removeInfoBlocks, 100);
-        setTimeout(removeInfoBlocks, 500);
+        // 1순위: generateRaw — 채팅에 안 뜨고 컨텍스트 오염 없음
+        if (stModules.generateRaw) {
+            try {
+                result = await stModules.generateRaw(prompt, null, false, false);
+                console.log('[유서] Generated via generateRaw');
+            } catch (rawErr) {
+                console.warn('[유서] generateRaw failed, falling back:', rawErr);
+            }
+        }
+
+        // 폴백: generateQuietPrompt
+        if (!result && stModules.generateQuietPrompt) {
+            result = await stModules.generateQuietPrompt(prompt, false, skipWIAN);
+            console.log('[유서] Generated via generateQuietPrompt (fallback)');
+
+            // 인포블럭 강제 제거
+            const removeInfoBlocks = () => {
+                document.querySelectorAll(
+                    '.mes_reasoning_details, .mes_info_block, .quiet_prompt_info, ' +
+                    '.infoBlock, .info_block, [class*="info_block"], [class*="infoBlock"], ' +
+                    '.mes_block details'
+                ).forEach(el => {
+                    const mes = el.closest('.mes');
+                    if (mes && mes === document.querySelector('#chat .mes:last-child')) {
+                        el.remove();
+                    }
+                });
+            };
+            removeInfoBlocks();
+            requestAnimationFrame(removeInfoBlocks);
+            setTimeout(removeInfoBlocks, 100);
+            setTimeout(removeInfoBlocks, 500);
+        }
 
         // 원래 프로필로 복원
         if (previousProfile) {
